@@ -7,6 +7,10 @@ import torchvision
 from torchvision import datasets, transforms
 
 
+# todo クラスや関数に型アノテーションを追加
+# todo windowを並行して出せるようにしたい、
+# todo wiodnwoを出しながら、処理は完了とさせたい
+
 # hyperparameters
 input_dim = 784  # x dimension
 hidden_dim = 200  # neurons in hidden layers
@@ -95,6 +99,7 @@ for epoch in range(epochs):
         cnt += 1
 
     loss_avg = loss_sum / cnt
+    # todo loss をprintしている旨を表示に追加、エポック数も出したい
     print(loss_avg)
     losses.append(loss_avg)
 
@@ -103,6 +108,7 @@ epochs = list(range(1, epochs + 1))
 plt.plot(epochs, losses, marker='o', linestyle='-')
 plt.xlabel('Epoch')
 plt.ylabel('Loss')
+# todo 以下で loss カーブを表示
 plt.show()
 
 
@@ -116,4 +122,5 @@ with torch.no_grad():
 grid_img = torchvision.utils.make_grid(generated_images, nrow=8, padding=2, normalize=True)
 plt.imshow(grid_img.permute(1, 2, 0))
 plt.axis('off')
+# todo 以下で生成した画像を表示
 plt.show()
