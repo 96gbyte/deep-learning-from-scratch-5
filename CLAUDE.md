@@ -13,7 +13,7 @@ This repository contains the source code for the book "Deep Learning from Scratc
 - `uv run python <script>` - Run Python scripts using UV virtual environment
 
 ### Running Code
-- `cd stepXX && python <script>.py` - Execute individual Python scripts in each step directory
+- `uv run python stepXX/<script>.py` - Execute individual Python scripts from root directory
 - `pytest` - Run tests (pytest is configured in pyproject.toml)
 
 ### Key Libraries Used
