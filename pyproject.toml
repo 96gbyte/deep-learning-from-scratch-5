@@ -12,3 +12,12 @@ dependencies = [
     "torchvision==0.22.1",
     "tqdm==4.67.1",
 ]
+
+[tool.uv]
+dev-dependencies = ["pytest>=8.4.0"]
+
+[tool.pytest.ini_options]
+python_functions = ["test_*"]
+python_classes = ["Test*"]
+python_files = ["test_*.py", "*_test.py"]
+testpaths = ["."] # ここの行のサジェストを抑制  # copilot: disable

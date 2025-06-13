@@ -4,3 +4,6 @@ uv init
 
 ## requirements.txt の読み込み、インストール
 uv add -r requirements.txt
+
+## ユニットテスト
+uv run pytest
