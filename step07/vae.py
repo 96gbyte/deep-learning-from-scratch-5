@@ -138,48 +138,95 @@ transform = transforms.Compose(
 dataset = datasets.MNIST(root="./data", train=True, download=True, transform=transform)
 dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
-model = VAE(input_dim, hidden_dim, latent_dim)
-optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-losses = []
 
-for epoch in range(epochs):
-    loss_sum = 0.0
-    cnt = 0
+def train_vae_model(epochs: int) -> tuple[torch.nn.Module, list[float]]:
+    """Train the VAE model and return model and losses.
 
-    for x, label in dataloader:
-        optimizer.zero_grad()
-        loss = model.get_loss(x)
-        loss.backward()
-        optimizer.step()
+    Args:
+        epochs (int): Number of training epochs.
 
-        loss_sum += loss.item()
-        cnt += 1
+    Returns:
+        tuple[torch.nn.Module, list[float]]: Trained model and loss history.
+    """
+    model = VAE(input_dim, hidden_dim, latent_dim)
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    losses = []
 
-    loss_avg = loss_sum / cnt
-    # todo loss をprintしている旨を表示に追加、エポック数も出したい
-    print(loss_avg)
-    losses.append(loss_avg)
+    for epoch in range(epochs):
+        loss_sum = 0.0
+        cnt = 0
 
-# plot losses
-epochs = list(range(1, epochs + 1))
-plt.plot(epochs, losses, marker="o", linestyle="-")
-plt.xlabel("Epoch")
-plt.ylabel("Loss")
-# todo 以下で loss カーブを表示
-plt.show()
+        for x, label in dataloader:
+            optimizer.zero_grad()
+            loss = model.get_loss(x)
+            loss.backward()
+            optimizer.step()
+
+            loss_sum += loss.item()
+            cnt += 1
+
+        loss_avg = loss_sum / cnt
+        print(f"Epoch {epoch + 1}/{epochs}, Loss: {loss_avg:.4f}")
+        losses.append(loss_avg)
+
+    return model, losses
 
 
-# generate new images
-with torch.no_grad():
-    sample_size = 64
-    z = torch.randn(sample_size, latent_dim)
-    x = model.decoder(z)
-    generated_images = x.view(sample_size, 1, 28, 28)
+def plot_results(model: torch.nn.Module, losses: list[float], epochs: int) -> None:
+    """Plot training losses and generated images.
 
-grid_img = torchvision.utils.make_grid(
-    generated_images, nrow=8, padding=2, normalize=True
-)
-plt.imshow(grid_img.permute(1, 2, 0))
-plt.axis("off")
-# todo 以下で生成した画像を表示
-plt.show()
+    Args:
+        model (torch.nn.Module): Trained VAE model.
+        losses (list[float]): Loss history.
+        epochs (int): Number of epochs.
+    """
+    # plot losses
+    epoch_range = list(range(1, epochs + 1))
+    plt.plot(epoch_range, losses, marker="o", linestyle="-")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.title("VAE Training Loss")
+    plt.show()
+
+    # generate new images
+    with torch.no_grad():
+        sample_size = 64
+        z = torch.randn(sample_size, latent_dim)
+        x = model.decoder(z)
+        generated_images = x.view(sample_size, 1, 28, 28)
+
+    grid_img = torchvision.utils.make_grid(
+        generated_images, nrow=8, padding=2, normalize=True
+    )
+    plt.imshow(grid_img.permute(1, 2, 0))
+    plt.axis("off")
+    plt.title("Generated Images")
+    plt.show()
+
+
+def train_vae(epochs: int = 30, show_plots: bool = True) -> None:
+    """Train the VAE model and optionally visualize results.
+
+    Args:
+        epochs (int): Number of training epochs. Defaults to 30.
+        show_plots (bool): Whether to show plots. Defaults to True.
+    """
+    model, losses = train_vae_model(epochs)
+
+    if show_plots:
+        plot_results(model, losses, epochs)
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Train a Variational Autoencoder (VAE) on MNIST dataset"
+    )
+    parser.add_argument(
+        "-e", "--epochs", type=int, default=30, help="Number of training epochs (default: 30)"
+    )
+    parser.add_argument("--no-plots", action="store_true", help="Skip plotting results")
+
+    args = parser.parse_args()
+    train_vae(epochs=args.epochs, show_plots=not args.no_plots)
