@@ -50,8 +50,62 @@ The `notebooks/` directory contains Jupyter notebook versions of all code for cl
 
 ## Development Notes
 
+### Python Development
 - Python 3.12+ required
 - Code follows educational structure with clear, readable implementations
 - Each step can be run independently 
 - Visualization is integral to most scripts - many generate plots to demonstrate concepts
 - Some scripts contain TODO comments indicating areas for enhancement
+
+### Rust Development
+- Rust edition 2021 required
+- Workspace structure with shared dependencies
+- Each step implemented as separate package under workspace
+- Pure Rust implementation using ndarray for numerical computing
+
+#### Rust Commands
+- `cargo check -p stepXX` - Check compilation without building
+- `cargo run -p stepXX` - Run step package
+- `cargo run -p stepXX -- -e 10` - Run with 10 epochs
+- `cargo test -p stepXX` - Run tests for specific step
+- `cargo build --workspace` - Build all packages
+
+#### Rust Dependencies
+- `burn` 0.17 - Modern deep learning framework with autodiff
+- `burn-ndarray` 0.17 - NdArray backend for burn
+- `burn-autodiff` 0.17 - Automatic differentiation support  
+- `clap` 4.0 - Command line argument parsing
+- `anyhow` 1.0 - Error handling
+
+#### Implementation Notes
+- Simplified architecture focusing on core concepts
+- No GPU acceleration (CPU-only implementation)
+- Dummy data generation for testing (actual MNIST loading can be added)
+- Type-safe command line interfaces
+- Comprehensive error handling with `Result<T, E>`
+
+#### Deep Learning Framework Options
+**Current Implementation**: `burn` 0.17 with automatic differentiation
+- ✅ Modern Rust ML framework with full autodiff support
+- ✅ Type-safe neural network modules
+- ✅ Automatic gradient computation and optimization
+- ✅ PyTorch-like API with Rust safety
+- ✅ Successfully compiles and runs (as of burn 0.17)
+
+**Alternative Implementations**:
+- Pure `ndarray` with manual gradient computation
+  - ✅ Stable and reliable
+  - ✅ Educational clarity  
+  - ❌ No automatic differentiation
+  - ❌ Manual optimization required
+- `tch` - PyTorch Rust bindings
+  - ❌ Requires libtorch installation
+  - ❌ Complex setup and distribution
+- `candle` - HuggingFace Rust framework  
+  - ❌ Version dependency conflicts with rand crate
+
+**Burn Framework Notes**:
+- burn 0.13/0.14 had bincode dependency issues (resolved in 0.17)
+- Requires `burn-autodiff` for gradient computation
+- Uses `Autodiff<NdArray<f32>>` backend for automatic differentiation
+- Training loop requires explicit type constraints for `Backend::FloatElem`
