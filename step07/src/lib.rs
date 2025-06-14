@@ -1,7 +1,8 @@
 use anyhow::Result;
 use burn::{
+    data::dataset::Dataset,
     module::Module,
-    nn::{Linear, LinearConfig, Relu, Sigmoid},
+    nn::{Initializer, Linear, LinearConfig, Relu, Sigmoid},
     optim::{AdamConfig, Optimizer},
     tensor::{
         backend::{AutodiffBackend, Backend},
@@ -31,9 +32,15 @@ pub struct Encoder<B: Backend> {
 
 impl<B: Backend> Encoder<B> {
     pub fn new(device: &B::Device) -> Self {
-        let linear = LinearConfig::new(INPUT_DIM, HIDDEN_DIM).init(device);
-        let linear_mu = LinearConfig::new(HIDDEN_DIM, LATENT_DIM).init(device);
-        let linear_logvar = LinearConfig::new(HIDDEN_DIM, LATENT_DIM).init(device);
+        let linear = LinearConfig::new(INPUT_DIM, HIDDEN_DIM)
+            .with_initializer(Initializer::XavierUniform { gain: 1.0 })
+            .init(device);
+        let linear_mu = LinearConfig::new(HIDDEN_DIM, LATENT_DIM)
+            .with_initializer(Initializer::XavierUniform { gain: 1.0 })
+            .init(device);
+        let linear_logvar = LinearConfig::new(HIDDEN_DIM, LATENT_DIM)
+            .with_initializer(Initializer::XavierUniform { gain: 1.0 })
+            .init(device);
         let activation = Relu::new();
 
         Self {
@@ -64,8 +71,12 @@ pub struct Decoder<B: Backend> {
 
 impl<B: Backend> Decoder<B> {
     pub fn new(device: &B::Device) -> Self {
-        let linear1 = LinearConfig::new(LATENT_DIM, HIDDEN_DIM).init(device);
-        let linear2 = LinearConfig::new(HIDDEN_DIM, INPUT_DIM).init(device);
+        let linear1 = LinearConfig::new(LATENT_DIM, HIDDEN_DIM)
+            .with_initializer(Initializer::XavierUniform { gain: 1.0 })
+            .init(device);
+        let linear2 = LinearConfig::new(HIDDEN_DIM, INPUT_DIM)
+            .with_initializer(Initializer::XavierUniform { gain: 1.0 })
+            .init(device);
         let relu = Relu::new();
         let sigmoid = Sigmoid::new();
 
@@ -116,7 +127,7 @@ impl<B: Backend> VAE<B> {
         let mu_sq = mu.powf_scalar(2.0);
         let log_sigma_sq = sigma_sq.clone().log();
         let ones = Tensor::ones_like(&log_sigma_sq);
-        let kl_loss = (ones + log_sigma_sq - mu_sq - sigma_sq).sum() * (-0.5);
+        let kl_loss = (ones + log_sigma_sq - mu_sq - sigma_sq).sum() * (-1.0);
 
         (recon_loss + kl_loss) / batch_size
     }
@@ -128,9 +139,32 @@ fn reparameterize<B: Backend>(mu: Tensor<B, 2>, sigma: Tensor<B, 2>) -> Tensor<B
     mu + sigma * eps
 }
 
-/// Create dummy MNIST data for testing
-fn create_dummy_data(device: &NdArrayDevice) -> Tensor<B, 2> {
-    Tensor::random([1000, INPUT_DIM], Distribution::Uniform(0.0, 1.0), device)
+/// Load real MNIST data using burn's dataset
+fn load_mnist_data(device: &<B as Backend>::Device) -> Tensor<B, 2> {
+    use burn::data::dataset::vision::MnistDataset;
+
+    let dataset = MnistDataset::train();
+
+    // Convert MNIST data to a 2D tensor manually
+    let mut all_images_data = Vec::new();
+
+    // Take a subset for faster processing (first 1000 images)
+    for i in 0..1000.min(dataset.len()) {
+        let item = dataset.get(i).unwrap();
+
+        // Convert image data to 1D vector [784] and normalize
+        let mut flattened = Vec::with_capacity(784);
+        for row in item.image.iter() {
+            for &pixel in row.iter() {
+                flattened.push(pixel / 255.0);
+            }
+        }
+        all_images_data.push(flattened);
+    }
+
+    // Convert to tensor
+    let data: Vec<f32> = all_images_data.into_iter().flatten().collect();
+    Tensor::<B, 1>::from_data(data.as_slice(), device).reshape([1000, 784])
 }
 
 /// Batch structure for training
@@ -160,12 +194,17 @@ impl<B: Backend> ValidStep<Batch<B>, ()> for VAE<B> {
 pub fn train_vae_model(epochs: usize) -> Result<(VAE<B>, Vec<f64>)> {
     let device = NdArrayDevice::default();
 
-    // Create dummy data
-    let train_data = create_dummy_data(&device);
+    // Load real MNIST data
+    let train_data = load_mnist_data(&device);
 
-    // Initialize model and optimizer
+    // Initialize model and optimizer with PyTorch-like parameters
     let mut model = VAE::new(&device);
-    let mut optimizer = AdamConfig::new().init();
+    let mut optimizer = AdamConfig::new()
+        .with_beta_1(0.9)
+        .with_beta_2(0.999)
+        .with_epsilon(1e-8)
+        .with_weight_decay(None) // No weight decay (same as PyTorch default)
+        .init();
 
     let mut losses = Vec::new();
     let num_samples = train_data.dims()[0];

@@ -3,8 +3,9 @@ members = ["step07"]
 resolver = "2"
 
 [workspace.dependencies]
-burn = { version = "0.17", features = ["ndarray", "train", "std"] }
+burn = { version = "0.17", features = ["ndarray", "train", "std", "vision"] }
 burn-ndarray = "0.17"
 burn-autodiff = "0.17"
+burn-dataset = "0.17"
 clap = { version = "4.0", features = ["derive"] }
 anyhow = "1.0"

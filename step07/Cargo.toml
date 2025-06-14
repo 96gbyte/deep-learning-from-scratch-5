@@ -7,5 +7,6 @@ edition = "2021"
 burn = { workspace = true }
 burn-ndarray = { workspace = true }
 burn-autodiff = { workspace = true }
+burn-dataset = { workspace = true }
 clap = { workspace = true }
 anyhow = { workspace = true }
